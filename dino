@@ -160,7 +160,7 @@ end)
 -- Auto save A every 5 min
 task.spawn(function()
     while true do
-        task.wait(300)
+        task.wait(10)
         local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
         if hrp then
             posA = hrp.CFrame
@@ -187,7 +187,7 @@ local function format(t)
 end
 
 -- looping delay = 3 jam 50 menit
-local loopDelay = (3 * 3600) + (50 * 60)
+local loopDelay = (0) + (2)
 
 startBtn.MouseButton1Click:Connect(function()
     if running then
