@@ -229,62 +229,69 @@ startBtn.MouseButton1Click:Connect(function()
 end)
 
 --========================================================--
---   MINIMIZE UI (NEW CLEAN VERSION)
+--   MINIMIZER (ICON MODE)
 --========================================================--
+
 local minimized = false
 
--- mini panel (ikon ↔ + teks)
-local miniPanel = Instance.new("Frame", gui)
-miniPanel.Size = UDim2.new(0, 70, 0, 32)
-miniPanel.BackgroundColor3 = Color3.fromRGB(30,30,30)
-miniPanel.Visible = false
-miniPanel.Active = true
-miniPanel.Draggable = true
-Instance.new("UICorner", miniPanel).CornerRadius = UDim.new(0, 8)
-
-local miniText = Instance.new("TextLabel", miniPanel)
-miniText.Size = UDim2.new(1, 0, 1, 0)
-miniText.BackgroundTransparency = 1
-miniText.Text = "↔ A-B"
-miniText.TextColor3 = Color3.fromRGB(255,255,255)
-miniText.Font = Enum.Font.GothamBold
-miniText.TextSize = 15
-
--- click miniPanel to restore
-miniPanel.InputBegan:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 then
-        minimized = false
-        miniPanel.Visible = false
+mini.MouseButton1Click:Connect(function()
+    if not minimized then
+        minimized = true
         
+        -- simpan posisi dan ukuran lama
+        originalSize = frame.Size
+        originalPos  = frame.Position
+        
+        -- semua child disembunyikan kecuali tombol mini
+        for _,v in ipairs(frame:GetChildren()) do
+            if v ~= mini then
+                v.Visible = false
+            end
+        end
+        
+        -- ubah tampilan tombol mini jadi ikon besar
+        mini.Text = "⬤"
+        mini.Font = Enum.Font.GothamBold
+        mini.TextSize = 22
+        mini.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+        
+        -- resize frame menjadi ikon
+        TweenService:Create(frame, TweenInfo.new(0.25), {
+            Size = UDim2.new(0, 60, 0, 60),
+            Position = UDim2.new(0.5, -30, 0.5, -30)
+        }):Play()
+
+        -- tengah-kan tombol mini
+        TweenService:Create(mini, TweenInfo.new(0.25), {
+            Position = UDim2.new(0.5, -25, 0.5, -25),
+            Size     = UDim2.new(0, 50, 0, 50)
+        }):Play()
+
+    else
+        minimized = false
+
+        -- restore bentuk tombol mini
+        mini.Text = "⤢"
+        mini.TextSize = 16
+        mini.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        
+        -- balikin ukuran frame
         TweenService:Create(frame, TweenInfo.new(0.25), {
             Size = originalSize,
             Position = originalPos
         }):Play()
 
+        -- balikin tombol mini ke pojok
+        TweenService:Create(mini, TweenInfo.new(0.25), {
+            Position = UDim2.new(1, -30, 0, 5),
+            Size     = UDim2.new(0, 28, 0, 28)
+        }):Play()
+
+        -- tampilkan kembali semua UI
         task.delay(0.25, function()
             for _,v in ipairs(frame:GetChildren()) do
                 v.Visible = true
             end
-        end)
-    end
-end)
-
-mini.MouseButton1Click:Connect(function()
-    if not minimized then
-        minimized = true
-
-        for _,v in ipairs(frame:GetChildren()) do
-            if v ~= mini then v.Visible = false end
-        end
-
-        TweenService:Create(frame, TweenInfo.new(0.25), {
-            Size = UDim2.new(0, 55, 0, 55),
-            Position = UDim2.new(0.5, -27, 0.5, -27)
-        }):Play()
-
-        task.delay(0.25, function()
-            miniPanel.Position = frame.Position
-            miniPanel.Visible = true
         end)
     end
 end)
