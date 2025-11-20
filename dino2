@@ -1,127 +1,291 @@
----------------------------------------------------------
--- SIMPLE MINIMIZE + TELEPORT A WITH AUTO SAVE POSITION A
----------------------------------------------------------
+------------------------------------------------------------
+-- AUTO TELEPORT SYSTEM (CLEAN HORIZONTAL UI)
+-- Fitur:
+-- ✔ Input menit → countdown → teleport ke B
+-- ✔ Setelah di B → tunggu 11 menit → otomatis ke A
+-- ✔ Auto save posisi A saat start & tiap 5 menit
+-- ✔ Manual TP A & TP B
+-- ✔ Teks kecil: posisi terakhir & countdown
+-- ✔ Start/Stop toggle
+-- ✔ GUI horizontal + minimize
+------------------------------------------------------------
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local player = Players.LocalPlayer
+local player = game.Players.LocalPlayer
+local char = player.Character or player.CharacterAdded:Wait()
+local root
 
-local posA = nil
-local lastSaved = os.time()
-local nextSave = os.time() + 300 -- 5 menit
+local function getRoot()
+    char = player.Character or player.CharacterAdded:Wait()
+    root = char:WaitForChild("HumanoidRootPart")
+end
+getRoot()
 
--- GUI ---------------------------------------------------
-local GUI = Instance.new("ScreenGui", game.CoreGui)
-GUI.Name = "MiniTeleportGUI"
-GUI.ResetOnSpawn = false
+------------------------------------------------------------
+-- POSISI B (Tetap)
+------------------------------------------------------------
+local POSISI_B = CFrame.new(6081, -586, 4703)
 
-local frame = Instance.new("Frame", GUI)
-frame.Size = UDim2.new(0, 160, 0, 65)
-frame.Position = UDim2.new(0.5, -80, 0.1, 0)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.Active = true
-frame.Draggable = true
-frame.BorderSizePixel = 0
+------------------------------------------------------------
+-- VARIABEL
+------------------------------------------------------------
+local posisiA = nil
+local terakhirSave = "--:--"
+local countdownTimer = 0
+local running = false
+local stopFlag = false
 
-local UIcorner = Instance.new("UICorner", frame)
-UIcorner.CornerRadius = UDim.new(0,6)
-
-local minimize = Instance.new("TextButton", frame)
-minimize.Size = UDim2.new(0, 70, 0, 25)
-minimize.Position = UDim2.new(0, 5, 0, 5)
-minimize.BackgroundColor3 = Color3.fromRGB(45,45,45)
-minimize.Text = "Minimize (A)"
-minimize.TextSize = 12
-minimize.BorderSizePixel = 0
-Instance.new("UICorner", minimize).CornerRadius = UDim.new(0,4)
-
-local teleport = Instance.new("TextButton", frame)
-teleport.Size = UDim2.new(0, 70, 0, 25)
-teleport.Position = UDim2.new(0, 85, 0, 5)
-teleport.BackgroundColor3 = Color3.fromRGB(45,45,45)
-teleport.Text = "Teleport (D)"
-teleport.TextSize = 12
-teleport.BorderSizePixel = 0
-Instance.new("UICorner", teleport).CornerRadius = UDim.new(0,4)
-
-local info = Instance.new("TextLabel", frame)
-info.Size = UDim2.new(1, -10, 0, 20)
-info.Position = UDim2.new(0, 5, 0, 35)
-info.BackgroundTransparency = 1
-info.TextSize = 12
-info.TextXAlignment = Enum.TextXAlignment.Left
-info.TextColor3 = Color3.fromRGB(200,200,200)
-info.Text = "Loading..."
-
----------------------------------------------------------
--- FUNGSI
----------------------------------------------------------
-
-local minimized = false
-minimize.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    if minimized then
-        frame.Size = UDim2.new(0,160,0,30)
-        info.Visible = false
-        teleport.Visible = false
-        minimize.Text = "Maximize"
-    else
-        frame.Size = UDim2.new(0,160,0,65)
-        info.Visible = true
-        teleport.Visible = true
-        minimize.Text = "Minimize (A)"
-    end
-end)
-
--- Simpan posisi A
-local function savePositionA()
-    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        posA = player.Character.HumanoidRootPart.Position
-        lastSaved = os.time()
-        nextSave = os.time() + 300
+------------------------------------------------------------
+-- FUNGSI TELEPORT
+------------------------------------------------------------
+local function teleport(cf)
+    getRoot()
+    if root then
+        root.CFrame = cf
     end
 end
 
--- Teleport
-teleport.MouseButton1Click:Connect(function()
-    if posA and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-        player.Character.HumanoidRootPart.CFrame = CFrame.new(posA)
+------------------------------------------------------------
+-- AUTO SAVE POSISI A
+------------------------------------------------------------
+local function savePosisiA()
+    getRoot()
+    posisiA = root.CFrame
+
+    -- waktu save
+    local t = os.date("*t")
+    terakhirSave = string.format("%02d:%02d", t.hour, t.min)
+end
+
+-- simpan saat script mulai
+savePosisiA()
+
+-- simpan tiap 5 menit otomatis
+task.spawn(function()
+    while true do
+        task.wait(300)
+        savePosisiA()
     end
 end)
 
--- Hotkeys
-game:GetService("UserInputService").InputBegan:Connect(function(input, proc)
-    if proc then return end
-    if input.KeyCode == Enum.KeyCode.A then
-        minimize:Activate()
-    elseif input.KeyCode == Enum.KeyCode.D then
-        teleport:Activate()
+------------------------------------------------------------
+-- BUAT GUI
+------------------------------------------------------------
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.Name = "AutoTPUI"
+gui.ResetOnSpawn = false
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.new(0, 430, 0, 80)
+frame.Position = UDim2.new(0.5, -215, 0.1, 0)
+frame.BackgroundColor3 = Color3.fromRGB(32,32,32)
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
+
+------------------------------------------------------------
+-- MINIMIZE BUTTON
+------------------------------------------------------------
+local miniBtn = Instance.new("TextButton", frame)
+miniBtn.Size = UDim2.new(0, 30, 0, 30)
+miniBtn.Position = UDim2.new(0, 5, 0, 5)
+miniBtn.Text = "●"
+miniBtn.Font = Enum.Font.SourceSansBold
+miniBtn.TextSize = 20
+miniBtn.TextColor3 = Color3.new(1,1,1)
+miniBtn.BackgroundColor3 = Color3.fromRGB(60,60,60)
+Instance.new("UICorner", miniBtn).CornerRadius = UDim.new(1,0)
+
+local minimized = false
+
+------------------------------------------------------------
+-- INPUT MENIT
+------------------------------------------------------------
+local input = Instance.new("TextBox", frame)
+input.Size = UDim2.new(0, 80, 0, 30)
+input.Position = UDim2.new(0, 45, 0, 5)
+input.PlaceholderText = "Menit"
+input.TextColor3 = Color3.new(1,1,1)
+input.BackgroundColor3 = Color3.fromRGB(50,50,50)
+input.Font = Enum.Font.SourceSansBold
+input.TextSize = 18
+Instance.new("UICorner", input).CornerRadius = UDim.new(0,6)
+
+------------------------------------------------------------
+-- START / STOP BUTTON
+------------------------------------------------------------
+local startBtn = Instance.new("TextButton", frame)
+startBtn.Size = UDim2.new(0, 80, 0, 30)
+startBtn.Position = UDim2.new(0, 135, 0, 5)
+startBtn.Text = "Start"
+startBtn.Font = Enum.Font.SourceSansBold
+startBtn.TextSize = 18
+startBtn.TextColor3 = Color3.new(1,1,1)
+startBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
+Instance.new("UICorner", startBtn).CornerRadius = UDim.new(0,6)
+
+------------------------------------------------------------
+-- TP A
+------------------------------------------------------------
+local tpA = Instance.new("TextButton", frame)
+tpA.Size = UDim2.new(0, 80, 0, 30)
+tpA.Position = UDim2.new(0, 225, 0, 5)
+tpA.Text = "TP A"
+tpA.Font = Enum.Font.SourceSansBold
+tpA.TextSize = 18
+tpA.TextColor3 = Color3.new(1,1,1)
+tpA.BackgroundColor3 = Color3.fromRGB(0,80,160)
+Instance.new("UICorner", tpA).CornerRadius = UDim.new(0,6)
+
+------------------------------------------------------------
+-- TP B
+------------------------------------------------------------
+local tpB = Instance.new("TextButton", frame)
+tpB.Size = UDim2.new(0, 80, 0, 30)
+tpB.Position = UDim2.new(0, 315, 0, 5)
+tpB.Text = "TP B"
+tpB.Font = Enum.Font.SourceSansBold
+tpB.TextSize = 18
+tpB.TextColor3 = Color3.new(1,1,1)
+tpB.BackgroundColor3 = Color3.fromRGB(160,80,0)
+Instance.new("UICorner", tpB).CornerRadius = UDim.new(0,6)
+
+------------------------------------------------------------
+-- TEKS POSISI TERAKHIR
+------------------------------------------------------------
+local posText = Instance.new("TextLabel", frame)
+posText.Size = UDim2.new(1, -10, 0, 20)
+posText.Position = UDim2.new(0, 5, 0, 40)
+posText.BackgroundTransparency = 1
+posText.TextColor3 = Color3.new(1,1,1)
+posText.Font = Enum.Font.SourceSansBold
+posText.TextSize = 16
+posText.TextXAlignment = Enum.TextXAlignment.Left
+
+------------------------------------------------------------
+-- TEKS COUNTDOWN
+------------------------------------------------------------
+local cdText = Instance.new("TextLabel", frame)
+cdText.Size = UDim2.new(1, -10, 0, 20)
+cdText.Position = UDim2.new(0, 5, 0, 60)
+cdText.BackgroundTransparency = 1
+cdText.TextColor3 = Color3.new(1,1,1)
+cdText.Font = Enum.Font.SourceSansBold
+cdText.TextSize = 16
+cdText.TextXAlignment = Enum.TextXAlignment.Left
+
+------------------------------------------------------------
+-- FORMAT WAKTU
+------------------------------------------------------------
+local function fmt(sec)
+    local m = math.floor(sec/60)
+    local s = math.floor(sec%60)
+    return string.format("%02d:%02d", m, s)
+end
+
+------------------------------------------------------------
+-- UPDATE TEKS LOOP
+------------------------------------------------------------
+task.spawn(function()
+    while true do
+        posText.Text = "Posisi terakhir: " .. terakhirSave
+        if running then
+            cdText.Text = "Countdown: " .. fmt(countdownTimer)
+        else
+            cdText.Text = "Countdown: -"
+        end
+        task.wait(0.2)
     end
 end)
 
----------------------------------------------------------
--- AUTO-SAVE + TIMER REAL-TIME
----------------------------------------------------------
+------------------------------------------------------------
+-- MINIMIZE
+------------------------------------------------------------
+miniBtn.MouseButton1Click:Connect(function()
+    minimized = not minimized
+    if minimized then
+        frame.Size = UDim2.new(0, 50, 0, 50)
+        for _,v in ipairs(frame:GetChildren()) do
+            if v ~= miniBtn and v:IsA("GuiObject") then
+                v.Visible = false
+            end
+        end
+    else
+        frame.Size = UDim2.new(0, 430, 0, 80)
+        for _,v in ipairs(frame:GetChildren()) do
+            v.Visible = true
+        end
+    end
+end)
 
--- Save posisi saat script baru start
-savePositionA()
+------------------------------------------------------------
+-- MANUAL TP A / B
+------------------------------------------------------------
+tpA.MouseButton1Click:Connect(function()
+    if posisiA then
+        teleport(posisiA)
+    end
+end)
 
-RunService.RenderStepped:Connect(function()
-    local now = os.time()
+tpB.MouseButton1Click:Connect(function()
+    teleport(POSISI_B)
+end)
 
-    -- Autosave tiap 5 menit
-    if now >= nextSave then
-        savePositionA()
+------------------------------------------------------------
+-- START / STOP LOGIC
+------------------------------------------------------------
+startBtn.MouseButton1Click:Connect(function()
+
+    -- STOP
+    if running then
+        stopFlag = true
+        running = false
+        startBtn.Text = "Start"
+        startBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
+        return
     end
 
-    -- Update countdown
-    local remain = nextSave - now
-    if remain < 0 then remain = 0 end
+    -- START
+    local menit = tonumber(input.Text)
+    if not menit then
+        cdText.Text = "Countdown: Invalid input"
+        return
+    end
 
-    local m = math.floor(remain / 60)
-    local s = remain % 60
+    countdownTimer = menit * 60
+    stopFlag = false
+    running = true
 
-    local savedTime = os.date("%H:%M:%S", lastSaved)
+    startBtn.Text = "Stop"
+    startBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
 
-    info.Text = "Posisi tersimpan: "..savedTime.." | Next: "..string.format("%02d:%02d", m, s)
+    task.spawn(function()
+        -- COUNTDOWN TO B
+        while running and countdownTimer > 0 and not stopFlag do
+            countdownTimer -= 0.1
+            task.wait(0.1)
+        end
+
+        if stopFlag then return end
+
+        -- TELEPORT TO B
+        teleport(POSISI_B)
+
+        -- 11 MENIT
+        countdownTimer = 11 * 60
+        while running and countdownTimer > 0 and not stopFlag do
+            countdownTimer -= 0.1
+            task.wait(0.1)
+        end
+
+        if stopFlag then return end
+
+        -- BALIK KE A
+        teleport(posisiA)
+
+        running = false
+        startBtn.Text = "Start"
+        startBtn.BackgroundColor3 = Color3.fromRGB(0,120,0)
+    end)
 end)
