@@ -1,0 +1,216 @@
+------------------------------------------------------------
+-- AUTO TELEPORT TIMER + COUNTDOWN + STOP BUTTON
+-- Teleport ke B setelah X menit
+-- Setelah sampai B → tunggu 11 menit → balik ke A
+------------------------------------------------------------
+
+local player = game.Players.LocalPlayer
+
+------------------------------------------------------------
+-- POSISI B (TETAP)
+------------------------------------------------------------
+local posisiB = CFrame.new(6081, -586, 4703)
+
+------------------------------------------------------------
+-- GUI
+------------------------------------------------------------
+local gui = Instance.new("ScreenGui", player.PlayerGui)
+gui.ResetOnSpawn = false
+gui.Name = "AutoTPGUI"
+
+local frame = Instance.new("Frame", gui)
+frame.Position = UDim2.new(0.5, -150, 0.5, -120)
+frame.Size = UDim2.new(0, 300, 0, 240)
+frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+frame.Active = true
+frame.Draggable = true
+
+local corner = Instance.new("UICorner", frame)
+corner.CornerRadius = UDim.new(0, 12)
+
+local title = Instance.new("TextLabel", frame)
+title.Text = "AUTO TELEPORT"
+title.Size = UDim2.new(1, 0, 0, 30)
+title.BackgroundTransparency = 1
+title.Font = Enum.Font.SourceSansBold
+title.TextColor3 = Color3.new(1,1,1)
+title.TextSize = 22
+
+local input = Instance.new("TextBox", frame)
+input.Position = UDim2.new(0, 20, 0, 50)
+input.Size = UDim2.new(0, 120, 0, 35)
+input.PlaceholderText = "Menit ke B"
+input.BackgroundColor3 = Color3.fromRGB(50,50,50)
+input.TextColor3 = Color3.new(1,1,1)
+input.Font = Enum.Font.SourceSansBold
+input.TextSize = 18
+
+local setAButton = Instance.new("TextButton", frame)
+setAButton.Position = UDim2.new(0, 20, 0, 100)
+setAButton.Size = UDim2.new(0, 120, 0, 35)
+setAButton.BackgroundColor3 = Color3.fromRGB(0,100,180)
+setAButton.TextColor3 = Color3.new(1,1,1)
+setAButton.Font = Enum.Font.SourceSansBold
+setAButton.TextSize = 18
+setAButton.Text = "Set Posisi A"
+
+local startButton = Instance.new("TextButton", frame)
+startButton.Position = UDim2.new(0, 155, 0, 50)
+startButton.Size = UDim2.new(0, 120, 0, 35)
+startButton.BackgroundColor3 = Color3.fromRGB(0,120,0)
+startButton.TextColor3 = Color3.new(1,1,1)
+startButton.Font = Enum.Font.SourceSansBold
+startButton.Text = "Start"
+startButton.TextSize = 18
+
+local stopButton = Instance.new("TextButton", frame)
+stopButton.Position = UDim2.new(0, 155, 0, 100)
+stopButton.Size = UDim2.new(0, 120, 0, 35)
+stopButton.BackgroundColor3 = Color3.fromRGB(150,0,0)
+stopButton.TextColor3 = Color3.new(1,1,1)
+stopButton.Font = Enum.Font.SourceSansBold
+stopButton.Text = "Stop"
+stopButton.TextSize = 18
+
+local countdown = Instance.new("TextLabel", frame)
+countdown.Position = UDim2.new(0, 20, 0, 155)
+countdown.Size = UDim2.new(1, -40, 0, 30)
+countdown.BackgroundTransparency = 1
+countdown.TextColor3 = Color3.new(1,1,1)
+countdown.Font = Enum.Font.SourceSansBold
+countdown.TextSize = 20
+countdown.Text = "Countdown: -"
+
+local status = Instance.new("TextLabel", frame)
+status.Position = UDim2.new(0, 20, 0, 190)
+status.Size = UDim2.new(1, -40, 0, 30)
+status.BackgroundTransparency = 1
+status.TextColor3 = Color3.new(1,1,1)
+status.Font = Enum.Font.SourceSansBold
+status.TextSize = 18
+status.Text = "Status: Idle"
+
+------------------------------------------------------------
+-- VARIABEL
+------------------------------------------------------------
+local posisiA = nil
+local running = false
+local stopFlag = false
+local sedangDiB = false
+local currentTimer = 0
+
+------------------------------------------------------------
+-- TELEPORT FUNCTION
+------------------------------------------------------------
+local function teleport(cf)
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if root then root.CFrame = cf end
+end
+
+------------------------------------------------------------
+-- SAVE POSISI A (+ ARAH)
+------------------------------------------------------------
+setAButton.MouseButton1Click:Connect(function()
+    local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        posisiA = root.CFrame
+        setAButton.Text = "A TERSIMPAN"
+        setAButton.BackgroundColor3 = Color3.fromRGB(0,160,255)
+    end
+end)
+
+------------------------------------------------------------
+-- STOP BUTTON
+------------------------------------------------------------
+stopButton.MouseButton1Click:Connect(function()
+    if running then
+        stopFlag = true
+        running = false
+        sedangDiB = false
+        currentTimer = 0
+        countdown.Text = "Countdown: -"
+        status.Text = "Status: Dihentikan"
+        startButton.Text = "Start"
+        startButton.BackgroundColor3 = Color3.fromRGB(0,120,0)
+    end
+end)
+
+------------------------------------------------------------
+-- FORMAT WAKTU (HH:MM:SS)
+------------------------------------------------------------
+local function formatTime(sec)
+    local h = math.floor(sec / 3600)
+    local m = math.floor((sec % 3600) / 60)
+    local s = sec % 60
+    return string.format("%02d:%02d:%02d", h, m, s)
+end
+
+------------------------------------------------------------
+-- START TIMER
+------------------------------------------------------------
+startButton.MouseButton1Click:Connect(function()
+    if not posisiA then
+        status.Text = "Status: Set A dulu!"
+        return
+    end
+    
+    local menit = tonumber(input.Text)
+    if not menit then
+        status.Text = "Status: Angka invalid!"
+        return
+    end
+
+    running = true
+    stopFlag = false
+    currentTimer = menit * 60
+
+    startButton.Text = "Running..."
+    startButton.BackgroundColor3 = Color3.fromRGB(0,80,0)
+    status.Text = "Status: Hitung mundur..."
+
+    -- COUNTDOWN LOOP
+    task.spawn(function()
+        while running and currentTimer > 0 and not stopFlag do
+            countdown.Text = "Countdown: " .. formatTime(currentTimer)
+            task.wait(0.1)
+            currentTimer -= 0.1
+        end
+        
+        if stopFlag or not running then
+            return
+        end
+        
+        ------------------------------------------------------------
+        -- TELEPORT KE B
+        ------------------------------------------------------------
+        teleport(posisiB)
+        status.Text = "Status: Di B → tunggu 11 menit"
+        sedangDiB = true
+        
+        ------------------------------------------------------------
+        -- 11 MENIT COUNTDOWN
+        ------------------------------------------------------------
+        currentTimer = 11 * 60
+        while sedangDiB and currentTimer > 0 and not stopFlag do
+            countdown.Text = "Countdown: " .. formatTime(currentTimer)
+            task.wait(0.1)
+            currentTimer -= 0.1
+        end
+        
+        if stopFlag then return end
+        
+        ------------------------------------------------------------
+        -- BALIK KE A
+        ------------------------------------------------------------
+        if posisiA then
+            teleport(posisiA)
+        end
+        
+        status.Text = "Status: Balik ke A (selesai)"
+        countdown.Text = "Countdown: -"
+        sedangDiB = false
+        running = false
+        startButton.Text = "Start"
+        startButton.BackgroundColor3 = Color3.fromRGB(0,120,0)
+    end)
+end)
