@@ -247,34 +247,41 @@ startBtn.MouseButton1Click:Connect(function()
 end)
 
 --========================================================--
---   MINIMIZER (TP BULAT CLEAN)
+--   MINIMIZER (TP BULAT CLEAN) — FIXED
 --========================================================--
 local minimized = false
 
--- Ubah teks tombol minimize jadi "-"
 mini.Text = "-"
+
+-- UICorner khusus mode bulat
+local miniCorner = Instance.new("UICorner")
+miniCorner.CornerRadius = UDim.new(1, 0)
 
 mini.MouseButton1Click:Connect(function()
     if not minimized then
         minimized = true
         
-        -- Sembunyikan semua elemen kecuali tombol mini
+        -- sembunyikan semua elemen KECUALI tombol mini (biar bisa diklik)
         for _, v in ipairs(frame:GetChildren()) do
-            if v ~= mini then
+            if v ~= mini and v.Name ~= "MiniLabel" then
                 v.Visible = false
             end
         end
-        
-        -- Ubah frame jadi bulat kecil
+
+        -- tempel UICorner bulat
+        miniCorner.Parent = frame
+
+        -- animasi mengecil jadi lingkaran
         TweenService:Create(frame, TweenInfo.new(0.25), {
             Size = UDim2.new(0, 60, 0, 60),
             Position = UDim2.new(0.5, -30, 0.5, -30),
             BackgroundColor3 = Color3.fromRGB(30,30,30)
         }):Play()
 
-        -- Tampilkan teks "TP" di tengah
-        if not frame:FindFirstChild("MiniLabel") then
-            local miniLabel = Instance.new("TextLabel", frame)
+        -- label TP di tengah
+        local miniLabel = frame:FindFirstChild("MiniLabel")
+        if not miniLabel then
+            miniLabel = Instance.new("TextLabel", frame)
             miniLabel.Name = "MiniLabel"
             miniLabel.Size = UDim2.new(1, 0, 1, 0)
             miniLabel.BackgroundTransparency = 1
@@ -283,26 +290,28 @@ mini.MouseButton1Click:Connect(function()
             miniLabel.TextColor3 = Color3.fromRGB(0,255,140)
             miniLabel.TextSize = 22
             miniLabel.ZIndex = 50
-        else
-            frame.MiniLabel.Visible = true
         end
+        miniLabel.Visible = true
 
     else
         minimized = false
         
-        -- Kembalikan ukuran normal
+        -- hapus UICorner bulat, kembalikan bentuk normal
+        miniCorner.Parent = nil
+
+        -- animasi kembali
         TweenService:Create(frame, TweenInfo.new(0.25), {
             Size = originalSize,
             Position = originalPos,
             BackgroundColor3 = Color3.fromRGB(22,22,22)
         }):Play()
 
-        -- Sembunyikan label TP
+        -- sembunyikan TP icon
         if frame:FindFirstChild("MiniLabel") then
             frame.MiniLabel.Visible = false
         end
 
-        -- Kembalikan UI asli
+        -- tampilkan kembali UI normal
         task.delay(0.25, function()
             for _, v in ipairs(frame:GetChildren()) do
                 if v ~= mini and v.Name ~= "MiniLabel" then
