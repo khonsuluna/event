@@ -247,38 +247,67 @@ startBtn.MouseButton1Click:Connect(function()
 end)
 
 --========================================================--
---   MINIMIZER (TP BULAT)
+--   MINIMIZER (TP BULAT CLEAN)
 --========================================================--
 local minimized = false
+
+-- Ubah teks tombol minimize jadi "-"
+mini.Text = "-"
 
 mini.MouseButton1Click:Connect(function()
     if not minimized then
         minimized = true
-
-        mini.Text = "TP"
-
+        
+        -- Sembunyikan semua elemen kecuali tombol mini
+        for _, v in ipairs(frame:GetChildren()) do
+            if v ~= mini then
+                v.Visible = false
+            end
+        end
+        
+        -- Ubah frame jadi bulat kecil
         TweenService:Create(frame, TweenInfo.new(0.25), {
-            Size = UDim2.new(0, 55, 0, 55),
-            Position = UDim2.new(0.5, -27, 0.5, -27)
+            Size = UDim2.new(0, 60, 0, 60),
+            Position = UDim2.new(0.5, -30, 0.5, -30),
+            BackgroundColor3 = Color3.fromRGB(30,30,30)
         }):Play()
 
-        for _,v in ipairs(frame:GetChildren()) do
-            if v ~= mini then v.Visible = false end
+        -- Tampilkan teks "TP" di tengah
+        if not frame:FindFirstChild("MiniLabel") then
+            local miniLabel = Instance.new("TextLabel", frame)
+            miniLabel.Name = "MiniLabel"
+            miniLabel.Size = UDim2.new(1, 0, 1, 0)
+            miniLabel.BackgroundTransparency = 1
+            miniLabel.Text = "TP"
+            miniLabel.Font = Enum.Font.GothamBold
+            miniLabel.TextColor3 = Color3.fromRGB(0,255,140)
+            miniLabel.TextSize = 22
+            miniLabel.ZIndex = 50
+        else
+            frame.MiniLabel.Visible = true
         end
 
     else
         minimized = false
-
-        mini.Text = "-"
-
+        
+        -- Kembalikan ukuran normal
         TweenService:Create(frame, TweenInfo.new(0.25), {
             Size = originalSize,
-            Position = originalPos
+            Position = originalPos,
+            BackgroundColor3 = Color3.fromRGB(22,22,22)
         }):Play()
 
+        -- Sembunyikan label TP
+        if frame:FindFirstChild("MiniLabel") then
+            frame.MiniLabel.Visible = false
+        end
+
+        -- Kembalikan UI asli
         task.delay(0.25, function()
-            for _,v in ipairs(frame:GetChildren()) do
-                v.Visible = true
+            for _, v in ipairs(frame:GetChildren()) do
+                if v ~= mini and v.Name ~= "MiniLabel" then
+                    v.Visible = true
+                end
             end
         end)
     end
