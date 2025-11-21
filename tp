@@ -48,13 +48,15 @@ header.Font = Enum.Font.GothamBold
 header.TextXAlignment = Enum.TextXAlignment.Left
 
 local mini = Instance.new("TextButton", frame)
-mini.Size = UDim2.new(0, 28, 0, 28)
-mini.Position = UDim2.new(1, -30, 0, 5)
-mini.Text = "⤢"
+mini.Size = UDim2.new(0, 30, 0, 30)
+mini.Position = UDim2.new(1, -35, 0, 4)
+mini.Text = "TP"
 mini.TextColor3 = Color3.fromRGB(255,255,255)
 mini.BackgroundColor3 = Color3.fromRGB(40,40,40)
-mini.TextSize = 16
-Instance.new("UICorner", mini).CornerRadius = UDim.new(0, 6)
+mini.TextSize = 14
+mini.Font = Enum.Font.GothamBold
+local miniCorner = Instance.new("UICorner", mini)
+miniCorner.CornerRadius = UDim.new(1, 0)   -- BULAT
 
 --========================================================--
 --   ROW TOP
@@ -144,14 +146,12 @@ local function tp(cf)
     if hrp then hrp.CFrame = cf end
 end
 
--- Cek apakah player dekat B (hindari overwrite posA)
 local function isNearB(cf)
     if not cf then return false end
     local dist = (cf.Position - posisiB.Position).Magnitude
     return dist < 50
 end
 
--- Save A di awal
 task.delay(1, function()
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if hrp then
@@ -160,7 +160,6 @@ task.delay(1, function()
     end
 end)
 
--- Auto save A tiap 15 menit, tapi skip kalau player sedang di B
 task.spawn(function()
     while true do
         task.wait(900)
@@ -212,8 +211,6 @@ startBtn.MouseButton1Click:Connect(function()
 
     task.spawn(function()
         while running do
-
-            -- PHASE 1 – Menuju B setelah menit input
             local t = menit * 60
             while running and t > 0 do
                 countdown.Text = "Ke B: " .. format(t)
@@ -225,7 +222,6 @@ startBtn.MouseButton1Click:Connect(function()
             tp(posisiB)
             countdown.Text = "Tiba di B"
 
-            -- PHASE 2 – Menunggu 11 menit untuk kembali ke A
             local back = 11 * 60
             while running and back > 0 do
                 countdown.Text = "Ke A: " .. format(back)
@@ -239,7 +235,6 @@ startBtn.MouseButton1Click:Connect(function()
                 countdown.Text = "Kembali ke A"
             end
 
-            -- PHASE 3 – Delay 3 jam 50 menit sebelum loop berikutnya
             local ld = loopDelay
             while running and ld > 0 do
                 countdown.Text = "Loop berikutnya: " .. format(ld)
@@ -256,7 +251,7 @@ startBtn.MouseButton1Click:Connect(function()
 end)
 
 --========================================================--
---   MINIMIZER
+--   MINIMIZER (TP BULAT)
 --========================================================--
 local minimized = false
 
