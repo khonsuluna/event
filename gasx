@@ -242,6 +242,12 @@ tpB.MouseButton1Click:Connect(function()
     tp(posisiB)
 end)
 
+local function format(t)
+    local m = math.floor(t/60)
+    local s = t % 60
+    return string.format("%02d:%02d", m, s)
+end
+
 ----------------------------------------------------------
 -- AUTO LOOP (SERVER TIME VERSION)
 ----------------------------------------------------------
